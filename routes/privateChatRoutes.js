@@ -11,17 +11,16 @@ privateChatRoute.get("/participant", protectRoutes, async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Find all chat rooms where user is a participant AND not soft-deleted
+    // Find all chat rooms where user is a participant
     const chats = await PrivateChatRoom.find({
       participants: userId,
-      deletedFor: { $ne: userId },
     }).populate({
       path: "participants",
-      select: "username profilePic",
+      select: "username profilePic ",
     });
 
-    // Map response with chat info
-    const response = chats.map((chat) => {
+    // Map response with chat info - only existing chats
+    const participants = chats.map((chat) => {
       const otherUser = chat.participants.find(
         (user) => user._id.toString() !== userId.toString()
       );
@@ -35,30 +34,7 @@ privateChatRoute.get("/participant", protectRoutes, async (req, res) => {
       };
     });
 
-    // ✅ Fetch all users except current user
-    const allUsers = await User.find({ _id: { $ne: userId } }).select(
-      "username profilePic"
-    );
-
-    // ✅ Merge users in chats + other users not in chat
-    const usersInChats = response.map((r) => r.participant._id.toString());
-    const remainingUsers = allUsers.filter(
-      (u) => !usersInChats.includes(u._id.toString())
-    );
-
-    // Add remaining users as "no chat yet"
-    const allParticipants = [
-      ...response,
-      ...remainingUsers.map((user) => ({
-        chatRoomId: null, // no chat created yet
-        participant: user,
-        lastMessage: null,
-        lastMessageAt: null,
-        lastSeen: null,
-      })),
-    ];
-
-    res.status(200).json({ participants: allParticipants });
+    res.status(200).json({ participants });
   } catch (err) {
     console.error("Get participants error:", err);
     return res.status(500).json({ error: err.message });

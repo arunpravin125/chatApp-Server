@@ -452,13 +452,32 @@ userRoutes.get("/getUsers", protectRoutes, async (req, res) => {
   }
 });
 
-userRoutes.get("/getUser", protectRoutes, async (req, res) => {
+// GET /api/users/getFindFriends
+userRoutes.get("/getFindFriends", protectRoutes, async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const conversation = await User.find();
+    // Find all chat rooms where the current user is a participant
+    const chatRooms = await PrivateChatRoom.find({
+      participants: userId,
+    });
+
+    // Extract all userIds that current user already has a chat with
+    const existingUserIds = chatRooms.flatMap((room) =>
+      room.participants.map((p) => p.toString())
+    );
+
+    // Include self so we don't suggest themself
+    existingUserIds.push(userId.toString());
+
+    // Find users NOT in those chat rooms
+    const findFriends = await User.find({
+      _id: { $nin: existingUserIds },
+    }).select("username profilePic");
+
+    res.status(200).json(findFriends);
   } catch (error) {
-    console.log("error in getConversations", error);
-    res.status(400).json({ message: "error in getConversations" });
+    console.error("error in getFindFriends:", error);
+    res.status(400).json({ message: "error in getFindFriends" });
   }
 });
