@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { connection } from "./lib/db.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import cors from "cors";
-
+import job from "./lib/cron.js";
 import { userRoutes } from "./routes/user.routes.js";
 
 import { privateChatRoute } from "./routes/privateChatRoutes.js";
@@ -13,6 +13,7 @@ import { app, io, server } from "./socket/socket.js";
 
 // const app = express();
 app.use(cookieParser());
+job.start();
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
